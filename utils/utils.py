@@ -1,13 +1,17 @@
 import torch
-# import torch should be first. Unclear issue, mentionned here: https://github.com/pytorch/pytorch/issues/2083
+# import torch should be first. Unclear issue, mentioned here: https://github.com/pytorch/pytorch/issues/2083
 import os
 from torch import nn
 import numpy as np
 import rasterio
 import warnings
-from ruamel_yaml import YAML
 import fiona
 import csv
+
+try:
+    from ruamel_yaml import YAML
+except ImportError:
+    from ruamel.yaml import YAML
 
 try:
     from pynvml import *
@@ -80,11 +84,10 @@ def assert_band_number(in_image, band_count_yaml):
     """
     try:
         in_array = image_reader_as_array(in_image)
+        msg = "The number of bands in the input image and the parameter 'number_of_bands' in the yaml file must be the same"
+        assert in_array.shape[2] == band_count_yaml, msg
     except Exception as e:
         print(e)
-
-    msg = "The number of bands in the input image and the parameter 'number_of_bands' in the yaml file must be the same"
-    assert in_array.shape[2] == band_count_yaml, msg
 
 
 def load_from_checkpoint(filename, model, optimizer=None, chop_layer_name=None):
@@ -175,7 +178,7 @@ def validate_num_classes(vector_file, num_classes, value_field):    # used only 
         for feature in src:
             distinct_att.add(feature['properties'][value_field])  # Use property of set to store unique values
 
-    if len(distinct_att)+1 != num_classes:
+    if len(distinct_att) != num_classes:
         raise ValueError('The number of classes in the yaml.config {} is different than the number of classes in '
                          'the file {} {}'.format (num_classes, vector_file, str(list(distinct_att))))
 
@@ -232,7 +235,7 @@ def get_device_ids(number_requested):
             for i in range(device_count):
                 handle = nvmlDeviceGetHandleByIndex(i)
                 info = nvmlDeviceGetMemoryInfo(handle)
-                if round(info.used / 1024 ** 3, 1) == 0.0:
+                if round(info.used / 1024 ** 3, 1) < 2.0:
                     lst_free_devices.append(i)
                 if len(lst_free_devices) == number_requested:
                     break
