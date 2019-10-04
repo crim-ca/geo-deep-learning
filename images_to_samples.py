@@ -6,6 +6,7 @@ import fiona
 import rasterio
 from rasterio import features
 import time
+import logging
 
 from tqdm import tqdm
 from collections import OrderedDict
@@ -15,6 +16,8 @@ from utils.utils import (
     read_parameters, assert_band_number, image_reader_as_array, create_or_empty_folder, validate_num_classes, read_csv
 )
 from utils.preprocess import minmax_scale
+from __init__ import setup_logger, LOGGER
+setup_logger()
 
 try:
     import boto3
@@ -274,15 +277,15 @@ def main(params):
     val_hdf5.close()
     tst_hdf5.close()
 
-    print("Number of samples created: ", number_samples)
+    LOGGER.info("Number of samples created: ", number_samples)
 
     if bucket_name and final_samples_folder:
-        print('Transfering Samples to the bucket')
+        LOGGER.info('Transfering Samples to the bucket')
         bucket.upload_file(samples_folder + "/trn_samples.hdf5", final_samples_folder + '/trn_samples.hdf5')
         bucket.upload_file(samples_folder + "/val_samples.hdf5", final_samples_folder + '/val_samples.hdf5')
         bucket.upload_file(samples_folder + "/tst_samples.hdf5", final_samples_folder + '/tst_samples.hdf5')
 
-    print("End of process")
+    LOGGER.info("End of process")
 
 
 if __name__ == '__main__':
@@ -295,7 +298,10 @@ if __name__ == '__main__':
     start_time = time.time()
 
     debug = params.get("global", {}).get("debug_mode", False)
+    if debug:
+        LOGGER.setLevel(logging.DEBUG)
 
+    LOGGER.info("Calling main")
     main(params)
 
-    print("Elapsed time:{}".format(time.time() - start_time))
+    LOGGER.info("Elapsed time:{}".format(time.time() - start_time))

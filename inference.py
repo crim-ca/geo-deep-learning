@@ -18,6 +18,8 @@ from models.model_choice import net
 from utils.utils import read_parameters, assert_band_number, load_from_checkpoint, \
     image_reader_as_array, read_csv, get_device_ids
 from utils.preprocess import minmax_scale
+from __init__ import setup_logger, LOGGER
+setup_logger()
 
 try:
     import boto3
@@ -108,7 +110,7 @@ def sem_seg_inference(model, nd_array, overlay, chunk_size, num_classes, device)
             # Resize the output array to the size of the input image and write it
             return output_mask[overlay:(h + overlay), overlay:(w + overlay)].astype(np.uint8)
     else:
-        print("Error classifying image : Image shape of {:1} is not recognized".format(len(nd_array.shape)))
+        LOGGER.info("Error classifying image : Image shape of {:1} is not recognized".format(len(nd_array.shape)))
 
 
 def classifier(params, img_list, model):
@@ -163,13 +165,13 @@ def classifier(params, img_list, model):
         top5_loc = []
         for i in top5:
             top5_loc.append(np.where(outputs.cpu().numpy()[0] == i)[0][0])
-        print(f"Image {img_name} classified as {classes[0][predicted]}")
-        print('Top 5 classes:')
+        LOGGER.info(f"Image {img_name} classified as {classes[0][predicted]}")
+        LOGGER.info('Top 5 classes:')
         for i in range(0, 5):
-            print(f"\t{classes[0][top5_loc[i]]} : {top5[i]}")
+            LOGGER.info(f"\t{classes[0][top5_loc[i]]} : {top5[i]}")
         classified_results = np.append(classified_results, [np.append([image['tif'], classes[0][predicted]],
                                                                       outputs.cpu().numpy()[0])], axis=0)
-        print()
+        LOGGER.info()
 
     csv_results = 'classification_results.csv'
     if bucket:
@@ -217,7 +219,7 @@ def main(params):
     device = torch.device(f'cuda:{lst_device_ids[0]}' if torch.cuda.is_available() and lst_device_ids else 'cpu')
 
     if lst_device_ids:
-        print(f"Using Cuda device {lst_device_ids[0]}")
+        LOGGER.info(f"Using Cuda device {lst_device_ids[0]}")
     else:
         warnings.warn(f"No Cuda device available. This process will only run on CPU")
 
@@ -273,14 +275,15 @@ def main(params):
                 bucket.upload_file(inference_image, os.path.join(params['inference']['working_folder'],
                                                                  f"{img_name.split('.')[0]}_inference.tif"))
     else:
-        raise ValueError(f"The task should be either classification or segmentation. The provided value is {params['global']['task']}")
+        raise ValueError(f"The task should be either classification or segmentation. "
+                         f"The provided value is {params['global']['task']}")
 
     time_elapsed = time.time() - since
-    print('Inference completed in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+    LOGGER.info('Inference completed in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
 
 if __name__ == '__main__':
-    print('Start: ')
+    LOGGER.info('Start: ')
     parser = argparse.ArgumentParser(description='Inference on images using trained model')
     parser.add_argument('param_file', metavar='file',
                         help='Path to training parameters stored in yaml')

@@ -6,6 +6,9 @@ from .focal_loss import FocalLoss
 from .lovasz_loss import LovaszSoftmax
 from .ohem_loss import OhemCrossEntropy2d
 from .focal_loss import FocalLoss
+import logging
+
+LOGGER = logging.getLogger("geo_deep_learning.losses")
 
 
 class MultiClassCriterion(nn.Module):

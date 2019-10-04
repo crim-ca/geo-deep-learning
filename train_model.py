@@ -32,11 +32,13 @@ from utils.metrics import report_classification, create_metrics_dict
 from models.model_choice import net
 from losses import MultiClassCriterion
 from utils.utils import read_parameters, load_from_checkpoint, list_s3_subfolders, get_device_ids
+from __init__ import setup_logger, LOGGER
+setup_logger()
 
 try:
     import boto3
 except ModuleNotFoundError:
-    warnings.warn('The boto3 library counldn\'t be imported. Ignore if not using AWS s3 buckets', ImportWarning)
+    warnings.warn("The boto3 library counldn't be imported. Ignore if not using AWS s3 buckets", ImportWarning)
     pass
 
 
@@ -279,9 +281,9 @@ def set_hyperparameters(params, model, state_dict_path):
     device = torch.device(f'cuda:{lst_device_ids[0]}' if torch.cuda.is_available() and lst_device_ids else 'cpu')
 
     if num_devices == 1:
-        print(f"Using Cuda device {lst_device_ids[0]}")
+        LOGGER.info(f"Using Cuda device {lst_device_ids[0]}")
     elif num_devices > 1:
-        print(f"Using data parallel on devices {str(lst_device_ids)[1:-1]}")
+        LOGGER.info(f"Using data parallel on devices {str(lst_device_ids)[1:-1]}")
         model = nn.DataParallel(model, device_ids=lst_device_ids)    # adds prefix 'module.' to state_dict keys
     else:
         warnings.warn(f"No Cuda device available. This process will only run on CPU")
@@ -339,7 +341,7 @@ def main(params):
     model, criterion, optimizer, lr_scheduler, device, num_devices = set_hyperparameters(params, model, state_dict_path)
 
     num_samples = get_num_samples(data_path=data_path, params=params)
-    print(f"Number of samples : {num_samples}")
+    LOGGER.info(f"Number of samples : {num_samples}")
     trn_dataloader, val_dataloader, tst_dataloader = create_dataloader(data_path=data_path,
                                                                        num_samples=num_samples,
                                                                        batch_size=batch_size,
@@ -349,7 +351,7 @@ def main(params):
     filename = os.path.join(output_path, 'checkpoint.pth.tar')    #TODO Should output directory hold same name as config file name?
 
     for epoch in range(0, params['training']['num_epochs']):
-        print(f'\nEpoch {epoch}/{params["training"]["num_epochs"] - 1}\n{"-" * 20}')
+        LOGGER.info(f'\nEpoch {epoch}/{params["training"]["num_epochs"] - 1}\n{"-" * 20}')
 
         trn_report = train(train_loader=trn_dataloader,
                            model=model,
@@ -382,7 +384,7 @@ def main(params):
             val_log.add_values(val_report, epoch, ignore=['precision', 'recall', 'fscore', 'iou'])
 
         if val_loss < best_loss:
-            print("save checkpoint")
+            LOGGER.info("save checkpoint")
             best_loss = val_loss
             # More info: https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-torch-nn-dataparallel-models
             state_dict = model.module.state_dict() if num_devices > 1 else model.state_dict()
@@ -400,7 +402,7 @@ def main(params):
             save_logs_to_bucket(bucket, bucket_output_path, output_path, now, params['training']['batch_metrics'])
 
         cur_elapsed = time.time() - since
-        print(f'Current elapsed time {cur_elapsed // 60:.0f}m {cur_elapsed % 60:.0f}s')
+        LOGGER.info(f'Current elapsed time {cur_elapsed // 60:.0f}m {cur_elapsed % 60:.0f}s')
 
     # load checkpoint model and evaluate it on test dataset.
     model = load_from_checkpoint(filename, model)
@@ -423,7 +425,7 @@ def main(params):
         bucket.upload_file(filename, bucket_filename)
 
     time_elapsed = time.time() - since
-    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+    LOGGER.info('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
 
 def train(train_loader, model, criterion, optimizer, scheduler, num_classes, batch_size, task, ep_idx, progress_log, device):
@@ -485,7 +487,7 @@ def train(train_loader, model, criterion, optimizer, scheduler, num_classes, bat
             optimizer.step()
 
     scheduler.step()
-    print(f'Training Loss: {train_metrics["loss"].avg:.4f}')
+    LOGGER.info(f'Training Loss: {train_metrics["loss"].avg:.4f}')
     return train_metrics
 
 
@@ -551,17 +553,17 @@ def evaluation(eval_loader, model, criterion, num_classes, batch_size, task, ep_
                     _tqdm.set_postfix(OrderedDict(device=device, gpu_perc=f'{res.gpu} %',
                                                   gpu_RAM=f'{mem.used/(1024**2):.0f}/{mem.total/(1024**2):.0f} MiB'))
 
-    print(f"{dataset} Loss: {eval_metrics['loss'].avg}")
+    LOGGER.info(f"{dataset} Loss: {eval_metrics['loss'].avg}")
     if batch_metrics is not None:
-        print(f"{dataset} precision: {eval_metrics['precision'].avg}")
-        print(f"{dataset} recall: {eval_metrics['recall'].avg}")
-        print(f"{dataset} fscore: {eval_metrics['fscore'].avg}")
+        LOGGER.info(f"{dataset} precision: {eval_metrics['precision'].avg}")
+        LOGGER.info(f"{dataset} recall: {eval_metrics['recall'].avg}")
+        LOGGER.info(f"{dataset} fscore: {eval_metrics['fscore'].avg}")
 
     return eval_metrics
 
 
 if __name__ == '__main__':
-    print('Start:')
+    LOGGER.info('Start:')
     parser = argparse.ArgumentParser(description='Training execution')
     parser.add_argument('param_file', metavar='DIR',
                         help='Path to training parameters stored in yaml')
@@ -571,4 +573,4 @@ if __name__ == '__main__':
     debug = True if params['global']['debug_mode'] else False
 
     main(params)
-    print('End of training')
+    LOGGER.info('End of training')

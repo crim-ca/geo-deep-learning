@@ -2,6 +2,7 @@
 .idea/
 *.egg
 *.egg-info
+*.log
 data/
 data
 data-origin/

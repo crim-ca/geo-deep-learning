@@ -8,6 +8,8 @@ import warnings
 import fiona
 import csv
 
+from __init__ import LOGGER
+
 try:
     from ruamel_yaml import YAML
 except ImportError:
@@ -87,7 +89,7 @@ def assert_band_number(in_image, band_count_yaml):
         msg = "The number of bands in the input image and the parameter 'number_of_bands' in the yaml file must be the same"
         assert in_array.shape[2] == band_count_yaml, msg
     except Exception as e:
-        print(e)
+        LOGGER.exception(e)
 
 
 def load_from_checkpoint(filename, model, optimizer=None, chop_layer_name=None):
@@ -98,7 +100,7 @@ def load_from_checkpoint(filename, model, optimizer=None, chop_layer_name=None):
         optimizer: optimiser to be used
     """
     if os.path.isfile(filename):
-        print("=> loading model '{}'".format(filename))
+        LOGGER.info("=> loading model '{}'".format(filename))
 
         if torch.cuda.is_available():
             checkpoint = torch.load(filename)
@@ -134,14 +136,14 @@ def load_from_checkpoint(filename, model, optimizer=None, chop_layer_name=None):
             checkpoint['model'] = new_state_dict['model']
         model.load_state_dict(checkpoint['model'])
 
-        print("=> loaded model '{}'".format(filename))
+        LOGGER.info("=> loaded model '{}'".format(filename))
         if optimizer:
             optimizer.load_state_dict(checkpoint['optimizer'])
             return model, optimizer
         elif optimizer is None:
             return model
     else:
-        print("=> no model found at '{}'".format(filename))
+        LOGGER.info("=> no model found at '{}'".format(filename))
 
 
 def image_reader_as_array(file_name):

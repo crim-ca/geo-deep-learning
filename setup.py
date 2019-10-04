@@ -52,8 +52,6 @@ for req in TEST_REQUIREMENTS:
         filtered_test_requirements.add(req)
 TEST_REQUIREMENTS = list(filtered_test_requirements)
 
-PKG_ROOT = ""
-PKG_NAME = "geo_deep_learning"
 setup(
     # -- meta information --------------------------------------------------
     # all found via setup.cfg
