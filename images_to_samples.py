@@ -11,7 +11,7 @@ from tqdm import tqdm
 from collections import OrderedDict
 
 from utils.CreateDataset import create_files_and_datasets
-from utils import (
+from utils.utils import (
     read_parameters, assert_band_number, image_reader_as_array, create_or_empty_folder, validate_num_classes, read_csv
 )
 from utils.preprocess import minmax_scale
@@ -294,7 +294,7 @@ if __name__ == '__main__':
 
     start_time = time.time()
 
-    debug = True if params['global']['debug_mode'] else False
+    debug = params.get("global", {}).get("debug_mode", False)
 
     main(params)
 

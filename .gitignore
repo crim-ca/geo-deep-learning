@@ -1,4 +1,7 @@
 .vscode/
+.idea/
+*.egg
+*.egg-info
 data/
 data
 data-origin/
